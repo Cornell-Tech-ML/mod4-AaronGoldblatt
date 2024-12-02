@@ -48,9 +48,7 @@ def test_max(t: Tensor) -> None:
     # Dimension 2 (reducing across feature dimension)
     out = minitorch.nn.max(t, 2)  # Find max values along third dimension
     # Verify first element is correct max
-    assert_close(
-        out[0, 0, 0], max([t[0, 0, i] for i in range(4)])
-    )
+    assert_close(out[0, 0, 0], max([t[0, 0, i] for i in range(4)]))
     assert out.shape == (2, 3, 1)  # Dimension 2 should be reduced to size 1
     # Check gradients for each dimension
     for dim in range(3):
@@ -58,7 +56,7 @@ def test_max(t: Tensor) -> None:
             # Function to check: max along dimension dim
             lambda t: minitorch.max(t, dim),
             # Input tensor with small random noise to avoid potential gradient issues at exact values
-            t + (minitorch.rand(t.shape) * 1e-4)
+            t + (minitorch.rand(t.shape) * 1e-4),
         )
 
 

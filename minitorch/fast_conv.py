@@ -22,6 +22,18 @@ Fn = TypeVar("Fn")
 
 
 def njit(fn: Fn, **kwargs: Any) -> Fn:
+    """Decorator to compile a function with Numba's JIT compiler with 'inline' always enabled, which ensures that all JIT compiled functions are inlined for better performance.
+
+    Args:
+    ----
+        fn (Fn): Function to be JIT compiled
+        **kwargs: Additional keyword arguments to pass to Numba's JIT compiler
+
+    Returns:
+    -------
+        Fn: JIT compiled version of the input function with inlining enabled
+
+    """
     return _njit(inline="always", **kwargs)(fn)  # type: ignore
 
 
@@ -97,7 +109,7 @@ def _tensor_conv1d(
         out_index: Index = np.empty(MAX_DIMS, np.int32)
         to_index(flat_out_index, out_shape, out_index)
         # Extract batch, output channel, and width from the index
-        current_batch, current_out_channel, current_width = out_index[:len(out_shape)]
+        current_batch, current_out_channel, current_width = out_index[: len(out_shape)]
         # Initialize accumulator for the convolution operation at this position
         dot_product_accumulator = 0.0
         # Calculate the position in the output storage
@@ -118,7 +130,8 @@ def _tensor_conv1d(
                 # Calculate the corresponding input width position
                 input_position_width = (
                     # For reverse=True: shift left (subtract offset)
-                    current_width - weight_offset if reverse
+                    current_width - weight_offset
+                    if reverse
                     # For reverse=False: shift right (add offset)
                     else current_width + weight_offset
                 )
@@ -131,7 +144,9 @@ def _tensor_conv1d(
                         + input_position_width * s1[2]
                     )
                     # Accumulate the product of input and weight values
-                    dot_product_accumulator += input[input_position] * weight[weight_position]
+                    dot_product_accumulator += (
+                        input[input_position] * weight[weight_position]
+                    )
         # Store the final accumulated value in the output tensor
         out[out_position] = dot_product_accumulator
 
@@ -169,6 +184,18 @@ class Conv1dFun(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
+        """Compute the backward pass for a 1D Convolution.
+
+        Args:
+        ----
+            ctx (Context): Context object for storing intermediate values.
+            grad_output (Tensor): Gradient of the output tensor.
+
+        Returns:
+        -------
+            Tuple[Tensor, Tensor]: Gradients of the input and weight tensors.
+
+        """
         input, weight = ctx.saved_values
         batch, in_channels, w = input.shape
         out_channels, in_channels, kw = weight.shape
@@ -268,7 +295,9 @@ def _tensor_conv2d(
         out_index: Index = np.empty(MAX_DIMS, np.int32)
         to_index(flat_out_index, out_shape, out_index)
         # Extract indices from the output position
-        current_batch, current_out_channel, current_height, current_width = out_index[:len(out_shape)]
+        current_batch, current_out_channel, current_height, current_width = out_index[
+            : len(out_shape)
+        ]
         # Initialize accumulator for the convolution operation at this position
         dot_product_accumulator = 0.0
         # Calculate the position in the output storage
@@ -290,11 +319,13 @@ def _tensor_conv2d(
                     )
                     # Calculate the corresponding input positions
                     input_h = (
-                        current_height - weight_h_offset if reverse
+                        current_height - weight_h_offset
+                        if reverse
                         else current_height + weight_h_offset
                     )
                     input_w = (
-                        current_width - weight_w_offset if reverse
+                        current_width - weight_w_offset
+                        if reverse
                         else current_width + weight_w_offset
                     )
                     # Only compute if the input position is within bounds
@@ -307,7 +338,9 @@ def _tensor_conv2d(
                             + input_w * s13
                         )
                         # Accumulate the product of input and weight values
-                        dot_product_accumulator += input[input_position] * weight[weight_position]
+                        dot_product_accumulator += (
+                            input[input_position] * weight[weight_position]
+                        )
         # Store the final accumulated value in the output tensor
         out[out_position] = dot_product_accumulator
 
@@ -343,6 +376,18 @@ class Conv2dFun(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
+        """Compute the backward pass for a 2D Convolution.
+
+        Args:
+        ----
+            ctx (Context): Context object for storing intermediate values.
+            grad_output (Tensor): Gradient of the output tensor.
+
+        Returns:
+        -------
+            Tuple[Tensor, Tensor]: Gradients of the input and weight tensors.
+
+        """
         input, weight = ctx.saved_values
         batch, in_channels, h, w = input.shape
         out_channels, in_channels, kh, kw = weight.shape

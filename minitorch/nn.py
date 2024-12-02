@@ -4,7 +4,7 @@ from . import operators
 from .autodiff import Context
 from .fast_ops import FastOps
 from .tensor import Tensor
-from .tensor_functions import Function, rand, tensor
+from .tensor_functions import Function, rand
 
 
 # List of functions in this file:
@@ -62,7 +62,7 @@ def avgpool2d(input: Tensor, kernel: Tuple[int, int]) -> Tensor:
     Returns:
     -------
         Tensor of size batch x channel x new_height x new_width that has been averaged over the pooling kernel
-        
+
     """
     # Implemented for Task 4.3.
     # Get the shape of the input tensor
@@ -88,7 +88,7 @@ def argmax(input: Tensor, dim: int) -> Tensor:
     Returns:
     -------
         Tensor of size batch x channel x height x width x 1 that is 1 in the location of the max value and 0 otherwise
-        
+
     """
     # Apply the max operation using the max_reduce function
     out = max_reduce(input, dim)
@@ -98,21 +98,21 @@ def argmax(input: Tensor, dim: int) -> Tensor:
 
 class Max(Function):
     """Max operator for the maxpool2d function"""
-    
+
     @staticmethod
     def forward(ctx: Context, input: Tensor, dim: Tensor) -> Tensor:
         """Forward pass for the max operation
-        
+
         Args:
         ----
             ctx: Context object for storing values for backward pass
             input: batch x channel x height x width
             dim: dimension to reduce over
-            
+
         Returns:
         -------
             Tensor of size batch x channel x height x width that is 1 in the location of the max value and 0 otherwise
-            
+
         """
         # Convert the dimension to an integer
         dim_int = int(dim.item())
@@ -124,35 +124,35 @@ class Max(Function):
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, float]:
         """Backward pass for the max operation
-        
+
         Args:
         ----
             ctx: Context object for storing values for backward pass
             grad_output: gradient of the output tensor
-            
+
         Returns:
         -------
             Gradient of the input tensor
-            
+
         """
         # Retrieve saved values
         input, dim = ctx.saved_values
         # Compute gradient using argmax
         return grad_output * argmax(input, dim), 0.0
-    
+
 
 def max(input: Tensor, dim: int) -> Tensor:
     """Apply max reduction over a tensor
-    
+
     Args:
     ----
         input: batch x channel x height x width
         dim: dimension to reduce over
-        
+
     Returns:
     -------
         Tensor of size batch x channel x height x width with max reduction applied to the specified dimension
-        
+
     """
     # Apply the max operation using the Max class, and ensure the dimension is a tensor
     return Max.apply(input, input._ensure_tensor(dim))
@@ -160,16 +160,16 @@ def max(input: Tensor, dim: int) -> Tensor:
 
 def softmax(input: Tensor, dim: int) -> Tensor:
     """Compute the softmax as a tensor
-    
+
     Args:
     ----
         input: batch x channel x height x width
         dim: dimension to apply softmax over
-        
+
     Returns:
     -------
         Tensor of size batch x channel x height x width with softmax applied to the specified dimension
-        
+
     """
     # Compute the exp of the input tensor
     exp_input = input.exp()
@@ -181,16 +181,16 @@ def softmax(input: Tensor, dim: int) -> Tensor:
 
 def logsoftmax(input: Tensor, dim: int) -> Tensor:
     """Compute the log of the softmax as a tensor
-    
+
     Args:
     ----
         input: batch x channel x height x width
         dim: dimension to apply logsoftmax over
-        
+
     Returns:
     -------
         Tensor of size batch x channel x height x width with logsoftmax applied to the specified dimension
-        
+
     """
     # Compute the log of the softmax by subtracting the log of the sum of the exp values from the input tensor
     return input - input.exp().sum(dim=dim).log()
@@ -203,11 +203,11 @@ def maxpool2d(input: Tensor, kernel: Tuple[int, int]) -> Tensor:
     ----
         input: batch x channel x height x width
         kernel: height x width of pooling
-        
+
     Returns:
     -------
         Tensor of size batch x channel x new_height x new_width with max pooling applied
-        
+
     """
     # Get the shape of the input tensor
     batch, channel, height, width = input.shape
@@ -225,11 +225,11 @@ def dropout(input: Tensor, rate: float, ignore: bool = False) -> Tensor:
         input: batch x channel x height x width
         rate: dropout rate
         ignore: if True, return the input tensor unchanged
-        
+
     Returns:
     -------
         Tensor of size batch x channel x height x width with dropout applied
-        
+
     """
     # If ignore is True or the rate is 0, return the input tensor
     if ignore or rate == 0:

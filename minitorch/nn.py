@@ -35,8 +35,41 @@ def tile(input: Tensor, kernel: Tuple[int, int]) -> Tuple[Tensor, int, int]:
     kh, kw = kernel
     assert height % kh == 0
     assert width % kw == 0
-    # TODO: Implement for Task 4.3.
-    raise NotImplementedError("Need to implement for Task 4.3")
+    # Implemented for Task 4.3.
+    # Calculate the new height and width after pooling using integer division
+    new_height = height // kh
+    new_width = width // kw
+    # Reshape to split both height and width dimensions into their kernel components
+    # From: (batch, channel, height, width)
+    # To:   (batch, channel, new_height, kh, new_width, kw)
+    input = input.contiguous().view(batch, channel, new_height, kh, new_width, kw)
+    # Rearrange dimensions to get pooling windows together
+    # From: (batch, channel, new_height, kh, new_width, kw)
+    # To:   (batch, channel, new_height, new_width, kh * kw)
+    input = input.permute(0, 1, 2, 4, 3, 5).contiguous()
+    input = input.view(batch, channel, new_height, new_width, kh * kw)
+    return input, new_height, new_width
 
 
-# TODO: Implement for Task 4.3.
+def avgpool2d(input: Tensor, kernel: Tuple[int, int]) -> Tensor:
+    """Apply average pooling 2D over a tensor using a given kernel size
+
+    Args:
+    ----
+        input: batch x channel x height x width
+        kernel: height x width of pooling
+
+    Returns:
+    -------
+        Tensor of size batch x channel x new_height x new_width that has been averaged over the pooling kernel
+        
+    """
+    # Get the shape of the input tensor
+    batch, channel, _, _ = input.shape
+    # Reshape the input tensor using the tile function
+    tiled, new_height, new_width = tile(input, kernel)
+    # Average over the pooling window and ensure correct output shape
+    return tiled.mean(dim=-1).view(batch, channel, new_height, new_width)
+
+
+# TODO: Implement for Task 4.4.

@@ -80,24 +80,24 @@ class CNNSentimentKim(minitorch.Module):
         """
         # Implemented for Task 4.5.
         # Reshape tensor from [batch x seq_len x emb_dim] to [batch x emb_dim x seq_len], which is required for Conv1d operations
-        embeddings = embeddings.permute(0, 2, 1)
+        reshaped_embeddings = embeddings.permute(0, 2, 1)
         # Process with different kernel sizes (3,4,5) to capture different n-gram patterns
         # Apply convolution, ReLU activation, and max-over-time pooling for each kernel
         x1 = minitorch.nn.max(
             # kernel_size = 3
-            self.conv1(embeddings).relu(),
+            self.conv1(reshaped_embeddings).relu(),
             # max along sequence length dimension
             2
         )
         x2 = minitorch.nn.max(
             # kernel_size = 4
-            self.conv2(embeddings).relu(),
+            self.conv2(reshaped_embeddings).relu(),
             # max along sequence length dimension
             2
         )
         x3 = minitorch.nn.max(
             # kernel_size = 5
-            self.conv3(embeddings).relu(),
+            self.conv3(reshaped_embeddings).relu(),
             # max along sequence length dimension
             2
         )
@@ -118,7 +118,7 @@ class CNNSentimentKim(minitorch.Module):
             not self.training
         )
         # Apply sigmoid activation and reshape to [batch_size] for binary classification output
-        return x.sigmoid().view(embeddings.shape[0])
+        return x.sigmoid().view(x.shape[0])
 
 
 # Evaluation helper methods

@@ -261,8 +261,55 @@ def _tensor_conv2d(
     s10, s11, s12, s13 = s1[0], s1[1], s1[2], s1[3]
     s20, s21, s22, s23 = s2[0], s2[1], s2[2], s2[3]
 
-    # TODO: Implement for Task 4.2.
-    raise NotImplementedError("Need to implement for Task 4.2")
+    # Implemented for Task 4.2.
+    # Iterate through each position in the output tensor
+    for flat_out_index in prange(out_size):
+        # Convert flat index to multi-dimensional index
+        out_index: Index = np.empty(MAX_DIMS, np.int32)
+        to_index(flat_out_index, out_shape, out_index)
+        # Extract indices from the output position
+        current_batch, current_out_channel, current_height, current_width = out_index[:len(out_shape)]
+        # Initialize accumulator for the convolution operation at this position
+        dot_product_accumulator = 0.0
+        # Calculate the position in the output storage
+        out_position = index_to_position(out_index, out_strides)
+        # Iterate through each input channel
+        for current_channel in range(in_channels):
+            # Iterate through each position in the 2D convolution kernel
+            for current_h in range(kh):
+                for current_w in range(kw):
+                    # Calculate the weight offsets based on whether we're doing forward or backward pass
+                    weight_h_offset = (kh - 1 - current_h) if reverse else current_h
+                    weight_w_offset = (kw - 1 - current_w) if reverse else current_w
+                    # Calculate position in weight tensor using strides
+                    weight_position = (
+                        current_out_channel * s20
+                        + current_channel * s21
+                        + weight_h_offset * s22
+                        + weight_w_offset * s23
+                    )
+                    # Calculate the corresponding input positions
+                    input_h = (
+                        current_height - weight_h_offset if reverse
+                        else current_height + weight_h_offset
+                    )
+                    input_w = (
+                        current_width - weight_w_offset if reverse
+                        else current_width + weight_w_offset
+                    )
+                    # Only compute if the input position is within bounds
+                    if (0 <= input_h < height) and (0 <= input_w < width):
+                        # Calculate position in input tensor using strides
+                        input_position = (
+                            current_batch * s10
+                            + current_channel * s11
+                            + input_h * s12
+                            + input_w * s13
+                        )
+                        # Accumulate the product of input and weight values
+                        dot_product_accumulator += input[input_position] * weight[weight_position]
+        # Store the final accumulated value in the output tensor
+        out[out_position] = dot_product_accumulator
 
 
 tensor_conv2d = njit(_tensor_conv2d, parallel=True, fastmath=True)

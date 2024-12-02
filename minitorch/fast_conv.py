@@ -90,8 +90,50 @@ def _tensor_conv1d(
     s1 = input_strides
     s2 = weight_strides
 
-    # TODO: Implement for Task 4.1.
-    raise NotImplementedError("Need to implement for Task 4.1")
+    # Implemented for Task 4.1.
+    # Iterate through each position in the output tensor
+    for flat_out_index in prange(out_size):
+        # Convert flat index to multi-dimensional index
+        out_index: Index = np.empty(MAX_DIMS, np.int32)
+        to_index(flat_out_index, out_shape, out_index)
+        # Extract batch, output channel, and width from the index
+        current_batch, current_out_channel, current_width = out_index[:len(out_shape)]
+        # Initialize accumulator for the convolution operation at this position
+        dot_product_accumulator = 0.0
+        # Calculate the position in the output storage
+        out_position = index_to_position(out_index, out_strides)
+        # Iterate through each input channel
+        for current_channel in range(in_channels):
+            # Iterate through each position in the convolution kernel
+            for current_weight in range(kw):
+                # Calculate the weight offset based on whether we're doing forward or backward pass
+                # For backward pass (reverse=True), we flip the kernel horizontally, which is done by subtracting the weight index from the kernel width
+                weight_offset = (kw - 1 - current_weight) if reverse else current_weight
+                # Calculate position in weight tensor using strides
+                weight_position = (
+                    current_out_channel * s2[0]
+                    + current_channel * s2[1]
+                    + weight_offset * s2[2]
+                )
+                # Calculate the corresponding input width position
+                input_position_width = (
+                    # For reverse=True: shift left (subtract offset)
+                    current_width - weight_offset if reverse
+                    # For reverse=False: shift right (add offset)
+                    else current_width + weight_offset
+                )
+                # Only compute if the input position is within bounds, otherwise skip (indicating that a value of 0 will be added to the accumulator)
+                if 0 <= input_position_width < width:
+                    # Calculate position in input tensor using strides
+                    input_position = (
+                        current_batch * s1[0]
+                        + current_channel * s1[1]
+                        + input_position_width * s1[2]
+                    )
+                    # Accumulate the product of input and weight values
+                    dot_product_accumulator += input[input_position] * weight[weight_position]
+        # Store the final accumulated value in the output tensor
+        out[out_position] = dot_product_accumulator
 
 
 tensor_conv1d = njit(_tensor_conv1d, parallel=True)
